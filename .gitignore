@@ -1,0 +1,8 @@
+.DS_Store
+.env
+/bin/
+/data/
+/dist/
+/.tools/
+/sanguoclip
+coverage.out

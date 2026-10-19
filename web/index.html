@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>SanguoClip</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SC</div>
+        <div>
+          <strong>SanguoClip</strong>
+          <span>对局剪辑台</span>
+        </div>
+      </div>
+
+      <nav class="nav-list" aria-label="主导航">
+        <button class="nav-item active" data-view-target="workspace">
+          <i data-lucide="layout-dashboard"></i><span>工作台</span>
+        </button>
+        <button class="nav-item" data-view-target="library">
+          <i data-lucide="clapperboard"></i><span>素材与成片</span>
+        </button>
+        <button class="nav-item" data-view-target="styles">
+          <i data-lucide="wand-sparkles"></i><span>剪辑风格</span>
+        </button>
+        <button class="nav-item" data-view-target="settings">
+          <i data-lucide="settings-2"></i><span>模型与环境</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-status">
+        <span class="status-dot" id="service-dot"></span>
+        <div>
+          <strong id="service-label">正在连接</strong>
+          <span>数据仅保存在本机</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="page-eyebrow">今日工作区</p>
+          <h1 id="page-title">视频工作台</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-button" id="refresh-button" title="刷新数据" aria-label="刷新数据">
+            <i data-lucide="refresh-cw"></i>
+          </button>
+          <button class="primary-button" data-action="open-upload">
+            <i data-lucide="upload"></i><span>导入录像</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="view active" data-view="workspace">
+        <div class="metrics" id="metrics"></div>
+
+        <div class="workspace-grid">
+          <section class="panel capture-panel">
+            <div class="section-heading">
+              <div>
+                <span class="step-number">01</span>
+                <h2>采集对局</h2>
+              </div>
+              <button class="secondary-button compact" id="scan-devices-button">
+                <i data-lucide="scan-line"></i><span>扫描设备</span>
+              </button>
+            </div>
+
+            <form id="capture-form" class="form-stack">
+              <label>
+                <span>三国杀分享链接</span>
+                <textarea name="share_url" rows="3" required placeholder="https://www.sanguosha.cn/share/index.html?..."></textarea>
+              </label>
+              <div class="form-row">
+                <label>
+                  <span>模拟器或安卓设备</span>
+                  <select name="device_serial" id="device-select" required>
+                    <option value="">先扫描设备</option>
+                  </select>
+                </label>
+                <label>
+                  <span>游戏渠道</span>
+                  <select name="package_name" id="client-select" required>
+                    <option value="">先扫描设备</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                <span>任务名称</span>
+                <input name="label" placeholder="例如：主公局素材">
+              </label>
+              <div class="notice neutral">
+                <i data-lucide="volume-x"></i>
+                <span>ADB 屏幕录制通常不包含游戏内部声音；需要原声时请使用模拟器自带录制并导入。</span>
+              </div>
+              <button class="primary-button wide" type="submit">
+                <i data-lucide="circle-dot"></i><span>唤起游戏并开始录制</span>
+              </button>
+            </form>
+            <div id="active-capture"></div>
+          </section>
+
+          <section class="panel editor-panel">
+            <div class="section-heading">
+              <div>
+                <span class="step-number">02</span>
+                <h2>编排片段</h2>
+              </div>
+              <span class="muted" id="editor-duration">未选择素材</span>
+            </div>
+
+            <div class="editor-layout">
+              <div class="preview-stage">
+                <video id="video-preview" controls preload="metadata"></video>
+                <div class="empty-preview" id="empty-preview">
+                  <i data-lucide="film"></i>
+                  <strong>选择一段素材</strong>
+                  <button class="text-button" data-action="open-upload">导入本地录像</button>
+                </div>
+              </div>
+
+              <form id="edit-form" class="form-stack">
+                <label>
+                  <span>素材</span>
+                  <select name="asset_id" id="editor-asset" required></select>
+                </label>
+                <div class="form-row">
+                  <label>
+                    <span>方案名称</span>
+                    <input name="title" placeholder="本局高光">
+                  </label>
+                  <label>
+                    <span>剪辑风格</span>
+                    <select name="style_id" id="editor-style"></select>
+                  </label>
+                </div>
+
+                <div class="segments-heading">
+                  <span>保留片段</span>
+                  <button class="secondary-button compact" type="button" id="add-segment-button">
+                    <i data-lucide="plus"></i><span>添加片段</span>
+                  </button>
+                </div>
+                <div class="segments" id="segments"></div>
+
+                <details class="model-assist">
+                  <summary><i data-lucide="sparkles"></i> 模型辅助生成</summary>
+                  <label>
+                    <span>关键事件与时间点</span>
+                    <textarea name="notes" rows="3" placeholder="例如：保留 02:10 的反贼身份判断，结尾保留击杀"></textarea>
+                  </label>
+                  <button class="secondary-button" type="button" id="suggest-button">
+                    <i data-lucide="wand-sparkles"></i><span>生成时间段</span>
+                  </button>
+                </details>
+
+                <button class="primary-button wide" type="submit">
+                  <i data-lucide="save"></i><span>保存剪辑方案</span>
+                </button>
+              </form>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel recent-panel">
+          <div class="section-heading">
+            <div>
+              <span class="step-number">03</span>
+              <h2>渲染队列</h2>
+            </div>
+          </div>
+          <div id="recent-edits" class="data-list"></div>
+        </section>
+      </section>
+
+      <section class="view" data-view="library">
+        <div class="split-heading">
+          <div>
+            <p class="eyebrow">本地媒体库</p>
+            <h2>素材与成片</h2>
+          </div>
+          <button class="primary-button" data-action="open-upload">
+            <i data-lucide="upload"></i><span>导入录像</span>
+          </button>
+        </div>
+        <section class="panel">
+          <div id="asset-list" class="media-grid"></div>
+        </section>
+        <section class="panel">
+          <div class="section-heading"><h2>所有剪辑方案</h2></div>
+          <div id="edit-list" class="data-list"></div>
+        </section>
+      </section>
+
+      <section class="view" data-view="styles">
+        <div class="split-heading">
+          <div>
+            <p class="eyebrow">复用你的剪辑偏好</p>
+            <h2>剪辑风格</h2>
+          </div>
+          <button class="primary-button" id="new-style-button">
+            <i data-lucide="plus"></i><span>新建风格</span>
+          </button>
+        </div>
+        <div class="settings-grid">
+          <section class="panel">
+            <div id="style-list" class="style-list"></div>
+          </section>
+          <section class="panel sticky-panel">
+            <div class="section-heading"><h2 id="style-form-title">新建风格</h2></div>
+            <form id="style-form" class="form-stack">
+              <input type="hidden" name="id">
+              <label><span>名称</span><input name="name" required placeholder="例如：身份推理复盘"></label>
+              <label><span>简短说明</span><input name="description" placeholder="适用的对局类型"></label>
+              <label><span>剪辑要求</span><textarea name="prompt" rows="6" required placeholder="描述保留重点、节奏和不希望出现的内容"></textarea></label>
+              <fieldset>
+                <legend>示例素材</legend>
+                <div id="style-example-assets" class="checkbox-list"></div>
+              </fieldset>
+              <button class="primary-button wide" type="submit"><i data-lucide="save"></i><span>保存风格</span></button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" data-view="settings">
+        <div class="split-heading">
+          <div>
+            <p class="eyebrow">运行配置</p>
+            <h2>模型与环境</h2>
+          </div>
+        </div>
+        <div class="settings-grid">
+          <section class="panel">
+            <div class="section-heading"><h2>模型配置</h2></div>
+            <form id="model-form" class="form-stack">
+              <label><span>OpenAI-compatible 地址</span><input type="url" name="base_url" required></label>
+              <label><span>模型名称</span><input name="model" required placeholder="例如：gpt-4.1-mini"></label>
+              <label>
+                <span>API Key 环境变量名</span>
+                <input name="api_key_env" placeholder="SANGUOCLIP_MODEL_API_KEY">
+                <small>只保存变量名，密钥从启动进程的环境变量读取。</small>
+              </label>
+              <label>
+                <span>生成温度 <output id="temperature-value">0.2</output></span>
+                <input type="range" name="temperature" min="0" max="2" step="0.1">
+              </label>
+              <button class="primary-button wide" type="submit"><i data-lucide="save"></i><span>保存模型配置</span></button>
+            </form>
+          </section>
+          <section class="panel">
+            <div class="section-heading">
+              <h2>环境诊断</h2>
+              <button class="icon-button" id="diagnose-button" title="重新诊断" aria-label="重新诊断"><i data-lucide="refresh-cw"></i></button>
+            </div>
+            <div id="environment-list" class="environment-list"></div>
+            <div id="environment-warnings"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="export-dialog" class="export-dialog">
+    <form method="dialog" class="dialog-heading">
+      <div>
+        <p class="eyebrow">成果成片</p>
+        <h2 id="export-preview-title">视频预览</h2>
+      </div>
+      <button class="icon-button" value="cancel" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button>
+    </form>
+    <div class="export-player">
+      <video id="export-preview" controls playsinline preload="metadata"></video>
+    </div>
+    <div class="export-actions">
+      <a class="secondary-button" id="export-download" href="#">
+        <i data-lucide="download"></i><span>下载成片</span>
+      </a>
+    </div>
+  </dialog>
+
+  <dialog id="upload-dialog">
+    <form method="dialog" class="dialog-heading">
+      <div>
+        <p class="eyebrow">本地导入</p>
+        <h2>添加录像素材</h2>
+      </div>
+      <button class="icon-button" value="cancel" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button>
+    </form>
+    <form id="upload-form" class="upload-zone">
+      <label for="upload-input">
+        <i data-lucide="file-video"></i>
+        <strong id="upload-file-label">选择视频文件</strong>
+        <span>MP4、MOV、MKV、WebM、M4V</span>
+        <input type="file" name="file" id="upload-input" accept="video/mp4,video/quicktime,video/x-matroska,video/webm,.m4v" aria-label="选择视频文件" required>
+      </label>
+      <button class="primary-button wide" type="submit"><i data-lucide="upload"></i><span>开始导入</span></button>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+</body>
+</html>
